@@ -1,0 +1,36 @@
+{
+  "name": "chat-support-backend",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -b && node dist/app.js",
+    "build": "tsc -b",
+    "start": "node dist/app.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "format": "prettier --check \"src/**/*.{ts,js,json,md}\"",
+    "format:write": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "openai": "^4.55.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.5",
+    "@typescript-eslint/eslint-plugin": "8.7.0",
+    "@typescript-eslint/parser": "8.7.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "prisma": "^5.22.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  }
+}
