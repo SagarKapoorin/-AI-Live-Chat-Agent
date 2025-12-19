@@ -61,6 +61,7 @@ Send a chat message to the AI assistant. If no `sessionId` is provided, a new ch
   - `src/services`: Business logic (`chatService` for session creation, OpenAI calls; `cacheService` for Redis-backed history).
   - `src/lib`: Shared clients (Prisma, OpenAI, Redis).
   - `src/middlewares`, `src/utils`, `src/types`, `src/constants`: Error handling, helpers, shared types, and configuration values.
+- Security and performance middleware: Helmet for headers, `hpp` to block HTTP parameter pollution, JSON body size limits, CORS, Redis-backed rate limiting, and `compression` to gzip responses.
 - Redis caches session histories with a 1-hour TTL (`SESSION_TTL_SECONDS`) to avoid repeat database reads and trim response latency; cache invalidation happens whenever a new message is written.
 - Redis also backs rate limiting for consistent counters across instances.
 - Conversation context is capped to the most recent 10 messages (`HISTORY_LIMIT`) before sending to OpenAI to control token usage while preserving relevance.
