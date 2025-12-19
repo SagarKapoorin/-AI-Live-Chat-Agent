@@ -1,4 +1,4 @@
-import { MessageRole } from "@prisma/client/wasm";
+import { MessageRole } from '@prisma/client/wasm';
 
 export interface CachedMessage {
   id: string;

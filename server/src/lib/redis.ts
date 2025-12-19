@@ -1,12 +1,12 @@
-import { Redis } from "ioredis";
-import { env } from "../config/env.js";
+import { Redis } from 'ioredis';
+import { env } from '../config/env.js';
 
 const redisClient = new Redis(env.redisUrl, {
-  lazyConnect: true
+  lazyConnect: true,
 });
 
-redisClient.on("error", (error: unknown) => {
-  console.warn("Redis error encountered:", error);
+redisClient.on('error', (error: unknown) => {
+  console.warn('Redis error encountered:', error);
 });
 
 export { redisClient };

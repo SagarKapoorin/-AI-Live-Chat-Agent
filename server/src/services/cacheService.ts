@@ -1,9 +1,8 @@
-import { prisma } from "../lib/prisma.js";
-import { redisClient } from "../lib/redis.js";
-import { ChatMessage } from "../types/chat.js";
-import { CachedMessage, SessionCache } from "../types/cache.js";
-import { SESSION_TTL_SECONDS } from "../constants/index.js";
-
+import { prisma } from '../lib/prisma.js';
+import { redisClient } from '../lib/redis.js';
+import { ChatMessage } from '../types/chat.js';
+import { CachedMessage, SessionCache } from '../types/cache.js';
+import { SESSION_TTL_SECONDS } from '../constants/index.js';
 
 class CacheService {
   private static instance: CacheService;
@@ -33,7 +32,7 @@ class CacheService {
   async set<T>(key: string, value: T, ttlSeconds = this.ttlSeconds): Promise<void> {
     try {
       const payload = JSON.stringify(value);
-      await this.client.set(key, payload, "EX", ttlSeconds);
+      await this.client.set(key, payload, 'EX', ttlSeconds);
     } catch (error) {
       console.warn(`Cache set failed for key ${key}:`, error);
     }
@@ -56,7 +55,7 @@ class CacheService {
       id: message.id,
       role: message.role,
       content: message.content,
-      createdAt: message.createdAt.toISOString()
+      createdAt: message.createdAt.toISOString(),
     }));
   }
 
@@ -65,7 +64,7 @@ class CacheService {
       id: message.id,
       role: message.role,
       content: message.content,
-      createdAt: new Date(message.createdAt)
+      createdAt: new Date(message.createdAt),
     }));
   }
 
@@ -77,7 +76,7 @@ class CacheService {
     }
     const messages = await prisma.message.findMany({
       where: { sessionId },
-      orderBy: { createdAt: "asc" }
+      orderBy: { createdAt: 'asc' },
     });
 
     const payload: SessionCache = { sessionId, messages: this.serializeMessages(messages) };
