@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { SYSTEM_PROMPT } from "../constants/index.js";
 import { ChatMessage } from "../types/chat.js";
 import { HISTORY_LIMIT, OPENAI_CHAT_MODEL } from "../constants/index.js";
+import { cacheService } from "./cacheService.js";
 const toOpenAiRole = (role: MessageRole): "user" | "assistant" => {
   return role === MessageRole.USER ? "user" : "assistant";
 };
@@ -31,6 +32,7 @@ const saveMessage = async (sessionId: string, role: MessageRole, content: string
     await prisma.message.create({
       data: { sessionId, role, content }
     });
+    await cacheService.clearSessionCache(sessionId);
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -103,11 +105,7 @@ export const getSessionHistory = async (sessionId: string): Promise<ChatMessage[
     if (!existing) {
       return [];
     }
-    //console.log("Fetching history for session:", sessionId);
-    const messages = await prisma.message.findMany({
-      where: { sessionId },
-      orderBy: { createdAt: "asc" }
-    });
+    const messages = await cacheService.getMessages(sessionId);
     return messages;
   } catch (error) {
     if (error instanceof Error) {
