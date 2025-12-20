@@ -7,6 +7,15 @@ export interface Message {
   timestamp: string;
 }
 
+export type ServerRole = 'USER' | 'ASSISTANT';
+
+export interface ServerMessage {
+  id: string;
+  role: ServerRole;
+  content: string;
+  createdAt: string;
+}
+
 export interface ChatState {
   messages: Message[];
   sessionId: string | null;
@@ -16,5 +25,10 @@ export interface ChatState {
 
 export interface ChatResponse {
   sessionId: string;
-  message: Message;
+  reply: string;
+}
+
+export interface ChatHistoryResponse {
+  sessionId: string;
+  history: ServerMessage[];
 }
