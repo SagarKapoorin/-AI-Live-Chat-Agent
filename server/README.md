@@ -1,76 +1,80 @@
-# Spur AI Chat Support — Backend
+# Spur AI Chat Support Backend
 
-A boring, reliable, and type-safe backend for powering Spur's AI customer support chat, built with Express, TypeScript, PostgreSQL, Redis, Prisma, and OpenAI.
+Express + TypeScript API with PostgreSQL (Prisma), Redis caching, and OpenAI-powered replies.
 
 ## Prerequisites
 - Node.js 20+ with npm
-- PostgreSQL 14+ running and reachable via `DATABASE_URL`
-- Redis 6+ running and reachable via `REDIS_URL`
-- An OpenAI API key
+- PostgreSQL 14+ reachable via `DATABASE_URL`
+- Redis 6+ reachable via `REDIS_URL`
+- OpenAI API key
 
-## Quick Start (Local Dev)
+## Quick Start
 1. `cd server`
-2. `npm install`
-3. Copy `.env.example` to `.env` and fill in values (PostgreSQL, Redis, OpenAI).
-4. Start Postgres and Redis locally (or point the URLs to hosted instances).
-5. Run migrations: `npm run prisma:migrate` (also generates the Prisma client).
-6. Build and start: `npm run build && npm start`  
-   - For quick runs without watch: `npm run dev` (builds then runs the compiled server).
-7. The API is served at `http://localhost:${PORT || 3000}/api`.
+2. Copy env: `cp .env.example .env`, then set `OPENAI_API_KEY`, `DATABASE_URL`, `REDIS_URL` (optional `PORT`)
+3. Install deps: `npm install`
+4. Apply schema: `npm run prisma:migrate` (runs migrations and generates Prisma client)
+5. Run: `npm run build && npm start` (or `npm run dev` for a quick build+run)
+6. Health: `GET http://localhost:${PORT || 3000}/health`
+7. API base: `http://localhost:${PORT || 3000}/api`
 
 ## Environment Variables
 | Name | Required | Description | Default |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Yes | PostgreSQL connection string | — |
 | `REDIS_URL` | Yes | Redis connection string | — |
-| `OPENAI_API_KEY` | Yes | OpenAI API key used by the chat completion client | — |
-| `PORT` | No | Port for the Express server | `3000` |
+| `OPENAI_API_KEY` | Yes | OpenAI key for chat completions | — |
+| `PORT` | No | Express port | `3000` |
 
-## API Documentation
+## Data Model (Prisma)
+- `Session`: `id (uuid)`, `createdAt`, `updatedAt`
+- `Message`: `id (uuid)`, `sessionId`, `role` (`USER` | `ASSISTANT`), `content`, `createdAt`
+- Index on `(sessionId, createdAt)` for chronological reads.
+
+## API
 ### POST `/api/chat/message`
-Send a chat message to the AI assistant. If no `sessionId` is provided, a new chat session is created.
-
-**Request Body**
+Send a chat message to the AI. If no `sessionId` is provided, a new session is created.
 ```json
-{
-  "message": "Where is my order?",
-  "sessionId": "a2d53b48-6c1e-4f62-9b50-3bc6b59adbb4"
-}
+{ "message": "Where is my order?", "sessionId": "uuid-optional" }
 ```
-- `message` (string, required): User message text.
-- `sessionId` (UUID, optional): Existing session identifier. When omitted, a new session is created and returned.
-
-**Response**
+Response:
 ```json
-{
-  "reply": "Your order is on the way and should arrive in 3-5 business days.",
-  "sessionId": "a2d53b48-6c1e-4f62-9b50-3bc6b59adbb4"
-}
+{ "reply": "Your order is on the way.", "sessionId": "uuid" }
 ```
-- `reply`: Assistant response generated via OpenAI `gpt-4o`.
-- `sessionId`: The active session to reuse on subsequent calls.
 
-### Rate Limiting
-- Global limiter: 60 requests per IP per 60 seconds (configurable via `RATE_LIMIT_MAX_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS` in `src/constants/index.ts`).
-- Backed by Redis through `express-rate-limit` + `rate-limit-redis`; if Redis is down, the middleware fails open to avoid blocking traffic.
+### GET `/api/chat/history/:sessionId`
+Fetch previous messages for a session:
+```json
+{ "sessionId": "uuid", "history": [ { "id": "...", "role": "USER", "content": "...", "createdAt": "..." } ] }
+```
 
-## Architecture & Design Decisions
-- Folder structure keeps concerns separated:
-  - `src/app.ts`: Express bootstrap and route wiring.
-  - `src/controllers`: HTTP handling + Zod validation.
-  - `src/services`: Business logic (`chatService` for session creation, OpenAI calls; `cacheService` for Redis-backed history).
-  - `src/lib`: Shared clients (Prisma, OpenAI, Redis).
-  - `src/middlewares`, `src/utils`, `src/types`, `src/constants`: Error handling, helpers, shared types, and configuration values.
-- Security and performance middleware: Helmet for headers, `hpp` to block HTTP parameter pollution, JSON body size limits, CORS, Redis-backed rate limiting, and `compression` to gzip responses.
-- Redis caches session histories with a 1-hour TTL (`SESSION_TTL_SECONDS`) to avoid repeat database reads and trim response latency; cache invalidation happens whenever a new message is written.
-- Redis also backs rate limiting for consistent counters across instances.
-- Conversation context is capped to the most recent 10 messages (`HISTORY_LIMIT`) before sending to OpenAI to control token usage while preserving relevance.
-- JSON body size is limited (`JSON_BODY_LIMIT`) to guard against oversized payloads.
-- Environment variables are validated at startup via Zod to fail fast when config is wrong.
-- Redis uses `lazyConnect` to keep startup fast and tolerate temporary cache downtime.
-- "Boring makes money": a small Express server, strict TypeScript, Prisma for migrations/queries, and minimal dependencies—no over-engineering.
+### Health
+`GET /health` → `{ "status": "ok" }`
 
-## Testing & Checks
-- Type-check and build: `npm run build`
+## Validation, Limits, and Errors
+- Requests trimmed and capped at 10MB (`JSON_BODY_LIMIT`).
+- Message text is required, trimmed, and capped at 2000 chars. Invalid input returns `400` with a clear error string.
+- LLM failures return friendly messages: `429` when rate limited; `503` when the assistant is unavailable. Generic errors fall back to a simple 500 payload.
+- Error responses are shaped as `{ "error": "message" }` for the frontend to display directly.
+
+## Rate Limiting & Caching
+- Global rate limit: 60 req/IP per 60s (`RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`) via Redis store.
+- Session histories cached in Redis for 1 hour (`SESSION_TTL_SECONDS`); cache cleared whenever a new message is written.
+
+## Architecture Overview
+- `src/app.ts` – Express bootstrap, middleware, routes, health check.
+- `src/controllers` – Request validation and response shaping.
+- `src/services` – Business logic (`chatService`, `cacheService`), Prisma + OpenAI calls.
+- `src/lib` – Shared clients (Prisma, Redis, OpenAI).
+- `src/middlewares` – Error handling, rate limiting.
+- `src/constants` – Config knobs for limits, prompts, and models.
+
+## LLM Notes
+- Provider/model: OpenAI `gpt-4o`
+- Prompt: Helpful ecommerce support agent with shipping/returns context; concise answers; asks clarifying questions.
+- History capped to 10 most recent messages before sending to the model to control token use.
+
+## Scripts
+- Type-check/build: `npm run build`
 - Lint: `npm run lint`
 - Format check: `npm run format`
+- Prisma migrate: `npm run prisma:migrate`

@@ -32,6 +32,9 @@ app.use(
 app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
 app.use(rateLimiter);
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 app.use('/api', chatRouter);
 app.use(errorHandler);
 

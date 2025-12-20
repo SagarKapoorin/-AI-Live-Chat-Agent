@@ -5,6 +5,8 @@ import { SYSTEM_PROMPT } from '../constants/index.js';
 import { ChatMessage } from '../types/chat.js';
 import { HISTORY_LIMIT, OPENAI_CHAT_MODEL } from '../constants/index.js';
 import { cacheService } from './cacheService.js';
+import { HttpError } from '../utils/httpError.js';
+
 const toOpenAiRole = (role: MessageRole): 'user' | 'assistant' => {
   return role === MessageRole.USER ? 'user' : 'assistant';
 };
@@ -79,10 +81,29 @@ const generateAiReply = async (history: ChatMessage[]): Promise<string> => {
     }
     return choice.message.content;
   } catch (error) {
-    if (error instanceof Error) {
-      throw error;
+    const status = (() => {
+      if (error && typeof error === 'object' && 'status' in error) {
+        const candidate = (error as { status?: unknown }).status;
+        if (typeof candidate === 'number') {
+          return candidate;
+        }
+      }
+      return null;
+    })();
+
+    if (status === 429) {
+      throw new HttpError(
+        429,
+        'The assistant is rate limited. Please try again in a few moments.',
+        error instanceof Error ? error.message : 'LLM rate limit',
+      );
     }
-    throw new Error('Failed to generate AI reply');
+
+    throw new HttpError(
+      503,
+      'The assistant is having trouble replying right now. Please try again shortly.',
+      error instanceof Error ? error.message : 'LLM unavailable',
+    );
   }
 };
 

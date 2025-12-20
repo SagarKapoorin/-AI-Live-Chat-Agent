@@ -51,12 +51,21 @@ export const useChat = () => {
   });
   const [hasFetchedHistory, setHasFetchedHistory] = useState(false);
 
+  const readErrorMessage = useCallback(async (response: Response): Promise<string> => {
+      const data = (await response.json()) as unknown;
+      if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
+        return data.error;
+      }
+    if (response.status === 429) return 'Too many requests. Please try again in a moment.';
+    return 'Something went wrong while talking to the server.';
+  }, []);
+
   useEffect(() => {
     const loadHistory = async (sessionId: string): Promise<void> => {
       try {
         const response = await fetch(buildUrl(`/api/chat/history/${sessionId}`));
         if (!response.ok) {
-          throw new Error('Unable to load chat history.');
+          throw new Error(await readErrorMessage(response));
         }
         const data: ChatHistoryResponse = await response.json();
         const mapped = data.history.map(mapServerMessage);
@@ -79,7 +88,7 @@ export const useChat = () => {
     if (state.sessionId && !hasFetchedHistory) {
       void loadHistory(state.sessionId);
     }
-  }, [state.sessionId, hasFetchedHistory]);
+  }, [state.sessionId, hasFetchedHistory, readErrorMessage]);
 
   const orderedMessages = useMemo(() => state.messages, [state.messages]);
 
@@ -117,7 +126,7 @@ export const useChat = () => {
         });
 
         if (!response.ok) {
-          throw new Error('Unable to send message. Please try again.');
+          throw new Error(await readErrorMessage(response));
         }
 
         const data: ChatResponse = await response.json();
@@ -140,16 +149,25 @@ export const useChat = () => {
           error: null,
         }));
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Something went wrong.';
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : 'Something went wrong while sending your message.';
+        const errorBubble: Message = {
+          id: createMessageId(),
+          role: 'ai',
+          content: message,
+          timestamp: new Date().toISOString(),
+        };
         setState((prev) => ({
           ...prev,
-          messages: prev.messages.filter((item) => item.id !== userMessage.id),
+          messages: [...prev.messages, errorBubble],
           isLoading: false,
           error: message,
         }));
       }
     },
-    [state.isLoading, state.sessionId]
+    [state.isLoading, state.sessionId, readErrorMessage]
   );
 
   return {
