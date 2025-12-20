@@ -75,10 +75,10 @@ export const ChatWidget = () => {
         {error && (
           <div
             role="alert"
-            className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            className="mb-3 flex w-full items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           >
-            <span className="font-semibold">Error:</span>
-            <span>{error}</span>
+            <span className="font-semibold shrink-0">Error:</span>
+            <span className="flex-1 break-words leading-snug">{error}</span>
           </div>
         )}
         <form onSubmit={handleSubmit}>

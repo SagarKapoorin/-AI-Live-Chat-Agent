@@ -51,14 +51,17 @@ Fetch previous messages for a session:
 `GET /health` → `{ "status": "ok" }`
 
 ## Validation, Limits, and Errors
+- There is retry limit and fallback after retry limit on OPENAI
 - Requests trimmed and capped at 10MB (`JSON_BODY_LIMIT`).
 - Message text is required, trimmed, and capped at 2000 chars. Invalid input returns `400` with a clear error string.
+- Prompt guardrails: simple prompt-injection heuristics and OpenAI moderation; flagged or system-level instructions return `400`.
+- LLM requests set `max_tokens` (300), `temperature` 0.3, and a 15s timeout with up to 3 retries on 429/5xx.
 - LLM failures return friendly messages: `429` when rate limited; `503` when the assistant is unavailable. Generic errors fall back to a simple 500 payload.
 - Error responses are shaped as `{ "error": "message" }` for the frontend to display directly.
 
 ## Rate Limiting & Caching
 - Global rate limit: 60 req/IP per 60s (`RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`) via Redis store.
-- Session histories cached in Redis for 24 hour (`SESSION_TTL_SECONDS`); cache cleared whenever a new message is written.
+- Session histories cached in Redis for 24 hours (`SESSION_TTL_SECONDS`); cache cleared whenever a new message is written.
 
 ## Architecture Overview
 - `src/app.ts` – Express bootstrap, middleware, routes, health check.

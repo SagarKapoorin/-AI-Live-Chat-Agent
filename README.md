@@ -8,9 +8,9 @@ Mini live-chat app with an AI support agent. React + Vite frontend, Express + Ty
 
 ## Tradeoffs / If there was more time
 - Add test.
+- Better UI/UX - not a designer so not good at desgin.
 - Add data ingestion (order realted and company realted data) and vector search in LLM will improve LLM performace.
 - Add rate limits per session/user, not just IP.
 - Storing api metrics in database 
 - fake LLM for offline users
 - storing user feedback - can use to improve llm resposes
-- Adding retry fall back upto 3 time on OpenAI. 

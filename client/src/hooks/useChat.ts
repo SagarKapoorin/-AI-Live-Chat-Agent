@@ -54,10 +54,18 @@ export const useChat = () => {
   const readErrorMessage = useCallback(async (response: Response): Promise<string> => {
       const data = (await response.json()) as unknown;
       if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
-        return data.error;
+        const details =
+          'details' in data && typeof (data as { details?: unknown }).details === 'string'
+            ? (data as { details: string }).details
+            : null;
+        const joined = details ? `${data.error}: ${details}` : data.error;
+        return `${joined} (HTTP ${response.status})`;
       }
-    if (response.status === 429) return 'Too many requests. Please try again in a moment.';
-    return 'Something went wrong while talking to the server.';
+    if (response.status === 429) {
+      return 'Too many requests. Please try again in a moment. (HTTP 429)';
+    }
+    const statusLabel = response.status ? ` (HTTP ${response.status})` : '';
+    return `Something went wrong while talking to the server.${statusLabel}`;
   }, []);
 
   useEffect(() => {
