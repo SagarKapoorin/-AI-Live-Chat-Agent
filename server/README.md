@@ -58,7 +58,7 @@ Fetch previous messages for a session:
 
 ## Rate Limiting & Caching
 - Global rate limit: 60 req/IP per 60s (`RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_WINDOW_SECONDS`) via Redis store.
-- Session histories cached in Redis for 1 hour (`SESSION_TTL_SECONDS`); cache cleared whenever a new message is written.
+- Session histories cached in Redis for 24 hour (`SESSION_TTL_SECONDS`); cache cleared whenever a new message is written.
 
 ## Architecture Overview
 - `src/app.ts` – Express bootstrap, middleware, routes, health check.
