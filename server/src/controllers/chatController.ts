@@ -1,8 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { getSessionHistory, handleChatMessage } from '../services/chatService.js';
+import { MAX_MESSAGE_LENGTH } from '../constants/index.js';
 const messageSchema = z.object({
-  message: z.string().min(1),
+  message: z
+    .string()
+    .trim()
+    .min(1, { message: 'Message cannot be empty.' })
+    .max(MAX_MESSAGE_LENGTH, {
+      message: `Message cannot exceed ${MAX_MESSAGE_LENGTH} characters.`,
+    }),
 
   sessionId: z.string().uuid().optional(),
 });

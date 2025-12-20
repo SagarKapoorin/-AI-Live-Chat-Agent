@@ -25,13 +25,16 @@ app.use(hpp());
 app.use(morgan('common'));
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: process.env.CLIENT_URL ?? 'http://localhost:3000',
     credentials: true,
   }),
 );
 app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
 app.use(rateLimiter);
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 app.use('/api', chatRouter);
 app.use(errorHandler);
 
